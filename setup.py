@@ -11,7 +11,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Heondeuk Lee",
     author_email="leehd1995@gmail.com",
-    url="https://github.com/hundredeuk2/tracker",
+    url="https://github.com/hundredeuk2/TrackMyLLM",
     packages=find_packages(exclude=["tutorial", "tests*"]),
     install_requires=[
         "PyYAML>=5.1",
