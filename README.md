@@ -2,7 +2,7 @@
 
 ### 1. Example usage for class method:
 ```python
-from tracker import cost_tracker
+from tracker.cost_tracker import cost_tracker
 from openai import OpenAI, AsyncOpenAI
 
 class Agent:
@@ -44,12 +44,19 @@ print("Total cost: ", format(test_client.total_cost(), "f"))
 
 # Individual costs:  defaultdict(<class 'list'>, {'gpt-4o-mini': [8.400000000000001e-06]})
 # Total cost:  0.000008
+
+a, b = await test_client.aask("Hello, world!")
+print("Individual costs: ", test_client.costs)
+print("Total cost: ", format(test_client.total_cost(), "f"))
+
+# Individual costs:  {'gpt-4o-mini': [7.65e-06, 7.65e-06]}
+# Total cost:  0.000015
 ```
 
 ### 2. Example usage for single function:
 ```python
 from openai import OpenAI
-from tracker import cost_tracker
+from tracker.cost_tracker import cost_tracker
 
 model_name = "gpt-4o-mini"
 client = OpenAI()
@@ -62,7 +69,7 @@ def generate(model_name, prompt):
         messages=[
             {
                 "role":"system",
-                "content":"asd"
+                "content":"Your a Great AI"
             },
             {
                 "role":"user",
@@ -73,7 +80,7 @@ def generate(model_name, prompt):
     return completion
 
 response = generate(model_name, "Hello, world!")
-print("Individual costs: ", cost_tracker.standalone_costs)
+print("Individual costs: ", cost_tracker.costs)
 print("Total cost: ", format(cost_tracker.total_cost(), "f"))
 
 # Individual costs:  defaultdict(<class 'list'>, {'gpt-4o-mini': [8.400000000000001e-06]})
