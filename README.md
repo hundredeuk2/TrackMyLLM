@@ -1,5 +1,10 @@
 # TrackMyLLM(cost)
 
+### Usage
+```
+pip install llm-cost-tracker
+```
+
 ### 1. Example usage for class method:
 ```python
 from tracker.cost_tracker import cost_tracker
