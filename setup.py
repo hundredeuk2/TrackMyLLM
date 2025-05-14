@@ -5,7 +5,7 @@ README = Path(__file__).parent / "README.md"
 
 setup(
     name="llm-cost-tracker",                            
-    version="0.1.1",
+    version="0.1.2",
     description="LLM API call token usage-based expense tracker",
     long_description=README.read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
