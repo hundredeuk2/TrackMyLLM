@@ -23,9 +23,23 @@ class CostTracker:
             is_async = inspect.iscoroutinefunction(fn)
 
             def _calc_cost(resp, pricing):
-                usage = getattr(resp, "usage", None)
-                pt = next((getattr(usage, attr) for attr in ("prompt_tokens", "input_tokens") if hasattr(usage, attr)), 0)
-                ct = next((getattr(usage, attr) for attr in ("completion_tokens", "output_tokens") if hasattr(usage, attr)), 0)
+                
+                # content schema list
+                usage = None
+                for attr in ("usage", "usage_metadata"):
+                    usage = getattr(resp, attr, None)
+                    if usage:
+                        break
+                if not usage:
+                    return 0.0
+                
+                # schema list
+                prompt_keys = ("prompt_tokens", "input_tokens", "prompt_token_count")
+                completion_keys = ("completion_tokens", "output_tokens", "candidates_token_count")
+
+                pt = next((getattr(usage, k) for k in prompt_keys if hasattr(usage, k)), 0)
+                ct = next((getattr(usage, k) for k in completion_keys if hasattr(usage, k)), 0)
+                
                 return pt * pricing.get("prompt", 0.0) + ct * pricing.get("completion", 0.0)
 
             if is_async:
@@ -88,6 +102,9 @@ class CostTracker:
         elif "claude" in model_name:
             self.price_detail = self.pricing["antrophic"]
 
+        elif "gemini" in model_name:
+            self.price_detail = self.pricing["google"]
+            
         else:
             raise ValueError(f"Unsurppot Model: {model_name}")
 
