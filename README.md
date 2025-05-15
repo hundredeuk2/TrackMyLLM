@@ -36,7 +36,7 @@ class Agent:
     
     @cost_tracker.track_cost() 
     async def aask(self, prompt: str):
-        resp = await self.aclient.ChatCompletion.acreate(
+        resp = await self.aclient.chat.completions.create(
             model=self.model_name,
             messages=[{"role":"user","content":prompt}],
         )
