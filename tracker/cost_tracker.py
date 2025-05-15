@@ -3,6 +3,7 @@ from functools import wraps
 from collections import defaultdict
 from typing import Any, Callable
 from .pricing_loader import load_pricing_yaml
+from .utils import calc_cost_from_completion
 
 class CostTracker:
     def __init__(self, 
@@ -21,27 +22,7 @@ class CostTracker:
     def track_cost(self, response_index: int = 0):
         def decorator(fn: Callable):
             is_async = inspect.iscoroutinefunction(fn)
-
-            def _calc_cost(resp, pricing):
-                
-                # content schema list
-                usage = None
-                for attr in ("usage", "usage_metadata"):
-                    usage = getattr(resp, attr, None)
-                    if usage:
-                        break
-                if not usage:
-                    return 0.0
-                
-                # schema list
-                prompt_keys = ("prompt_tokens", "input_tokens", "prompt_token_count")
-                completion_keys = ("completion_tokens", "output_tokens", "candidates_token_count")
-
-                pt = next((getattr(usage, k) for k in prompt_keys if hasattr(usage, k)), 0)
-                ct = next((getattr(usage, k) for k in completion_keys if hasattr(usage, k)), 0)
-                
-                return pt * pricing.get("prompt", 0.0) + ct * pricing.get("completion", 0.0)
-
+            
             if is_async:
                 @wraps(fn)
                 async def async_wrapper(*args, **kwargs):
@@ -60,7 +41,7 @@ class CostTracker:
 
                     self.check_company(model_name)
 
-                    cost = _calc_cost(resp, self.price_detail[model_name])
+                    cost = calc_cost_from_completion(resp, self.price_detail[model_name])
                     if hasattr(inst, "costs"):
                         inst.costs.setdefault(model_name, []).append(cost)
                     else:
@@ -85,7 +66,7 @@ class CostTracker:
 
                     self.check_company(model_name)
 
-                    cost = _calc_cost(resp, self.price_detail[model_name])
+                    cost = calc_cost_from_completion(resp, self.price_detail[model_name])
                     if hasattr(inst, "costs"):
                         inst.costs.setdefault(model_name, []).append(cost)
                     else:
