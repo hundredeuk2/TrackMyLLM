@@ -3,6 +3,7 @@ from functools import wraps
 from collections import defaultdict
 from typing import Any, Callable
 from .pricing_loader import load_pricing_yaml
+from .utils import calc_cost_from_completion
 
 class CostTracker:
     def __init__(self, 
@@ -21,13 +22,7 @@ class CostTracker:
     def track_cost(self, response_index: int = 0):
         def decorator(fn: Callable):
             is_async = inspect.iscoroutinefunction(fn)
-
-            def _calc_cost(resp, pricing):
-                usage = getattr(resp, "usage", None)
-                pt = next((getattr(usage, attr) for attr in ("prompt_tokens", "input_tokens") if hasattr(usage, attr)), 0)
-                ct = next((getattr(usage, attr) for attr in ("completion_tokens", "output_tokens") if hasattr(usage, attr)), 0)
-                return pt * pricing.get("prompt", 0.0) + ct * pricing.get("completion", 0.0)
-
+            
             if is_async:
                 @wraps(fn)
                 async def async_wrapper(*args, **kwargs):
@@ -46,7 +41,7 @@ class CostTracker:
 
                     self.check_company(model_name)
 
-                    cost = _calc_cost(resp, self.price_detail[model_name])
+                    cost = calc_cost_from_completion(resp, self.price_detail[model_name])
                     if hasattr(inst, "costs"):
                         inst.costs.setdefault(model_name, []).append(cost)
                     else:
@@ -71,7 +66,7 @@ class CostTracker:
 
                     self.check_company(model_name)
 
-                    cost = _calc_cost(resp, self.price_detail[model_name])
+                    cost = calc_cost_from_completion(resp, self.price_detail[model_name])
                     if hasattr(inst, "costs"):
                         inst.costs.setdefault(model_name, []).append(cost)
                     else:
@@ -88,6 +83,9 @@ class CostTracker:
         elif "claude" in model_name:
             self.price_detail = self.pricing["antrophic"]
 
+        elif "gemini" in model_name:
+            self.price_detail = self.pricing["google"]
+            
         else:
             raise ValueError(f"Unsurppot Model: {model_name}")
 

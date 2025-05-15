@@ -132,3 +132,32 @@ antrophic:
     cache_writes:        0.00000030
     cache_hits:          0.00000003
     completion:       0.00000125
+
+google:
+  "gemini-2.5-flash-preview-04-17":
+    prompt:     0.00000015
+    completion: 0.00000060
+
+  "gemini-2.5-pro-preview-05-06":
+    prompt:     0.00000125
+    completion: 0.00001000
+
+  "gemini-2.0-flash":
+    prompt:     0.00000010
+    completion: 0.00000040
+
+  "gemini-2.0-flash-lite":
+    prompt:     0.000000075
+    completion: 0.00000030
+
+  "gemini-1.5-flash":
+    prompt:     0.000000075
+    completion: 0.00000030
+
+  "gemini-1.5-flash-8b":
+    prompt:     0.0000000375
+    completion: 0.00000015
+
+  "gemini-1.5-pro":
+    prompt:     0.00000125
+    completion: 0.00000500
