@@ -12,5 +12,5 @@ def calc_cost_from_completion(resp, pricing) -> float:
 
     pt = next((getattr(usage, k) for k in prompt_keys if hasattr(usage, k)), 0)
     ct = next((getattr(usage, k) for k in completion_keys if hasattr(usage, k)), 0)
-
-    return round((pt * pricing.get("prompt", 0) + ct * pricing.get("completion", 0)), 6)
+    cost = round((pt * pricing.get("prompt", 0) + ct * pricing.get("completion", 0)), 6)
+    return pt, ct, cost
