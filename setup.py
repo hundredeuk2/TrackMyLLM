@@ -1,11 +1,18 @@
+import re
 from setuptools import setup, find_packages
 from pathlib import Path
 
 README = Path(__file__).parent / "README.md"
 
+version_file = Path("tracker") / "__init__.py"
+version = re.search(
+    r'__version__ = ["\']([^"\']+)["\']',
+    version_file.read_text(), re.M
+).group(1)
+
 setup(
     name="llm-cost-tracker",                            
-    version="0.1.3",
+    version=version,
     description="LLM API call token usage-based expense tracker",
     long_description=README.read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
