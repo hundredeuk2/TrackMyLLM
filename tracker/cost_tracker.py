@@ -24,54 +24,56 @@ class CostTracker:
     def track_cost(self, response_index: int = 0):
         def decorator(fn: Callable):
             is_async = inspect.iscoroutinefunction(fn)
-            
-            async def _async_wrapper(*args, **kwargs):
-                result = await fn(*args, **kwargs)
-                resp = (result[response_index] if isinstance(result, (tuple, list)) else result)
-                inst = args[0] if args else None
 
-                model_name = self._extract_model_name(inst, args)
-                self.check_company(model_name)
+            if is_async:
+                @wraps(fn)
+                async def async_wrapper(*args, **kwargs):
+                    result = await fn(*args, **kwargs)
+                    resp = (result[response_index]
+                            if isinstance(result, (tuple, list)) else result)
+                    inst = args[0] if args else None
+                    
+                    self.model_name = self._extract_model_name(inst, args)
+                    self.check_company(self.model_name)
 
-                usage = getattr(resp, 'usage', None) or getattr(resp, 'usage_metadata', None)
-                pt = getattr(usage, 'prompt_tokens', getattr(usage, 'input_tokens', getattr(usage, 'prompt_token_count', 0)))
-                ct = getattr(usage, 'completion_tokens', getattr(usage, 'output_tokens', getattr(usage, 'candidates_token_count', 0)))
-                cost = calc_cost_from_completion(resp, self.price_detail[model_name])
+                    pt, ct, cost = calc_cost_from_completion(resp, self.price_detail[self.model_name])
 
-                target_costs = (inst.costs if hasattr(inst, 'costs') else self.costs)
-                target_tokens = (inst.token_logs if hasattr(inst, 'token_logs') else self.token_logs)
+                    # settings
+                    target_costs = (inst.costs if hasattr(inst, 'costs') else self.costs)
+                    target_tokens = (inst.token_logs if hasattr(inst, 'token_logs') else self.token_logs)
 
-                target_costs.setdefault(model_name, []).append(cost)
-                target_tokens.setdefault(model_name, {"prompt_tokens": [], "completion_tokens": []})
-                target_tokens[model_name]["prompt_tokens"].append(pt)
-                target_tokens[model_name]["completion_tokens"].append(ct)
+                    target_costs.setdefault(self.model_name, []).append(cost)
+                    target_tokens.setdefault(self.model_name, {"prompt_tokens": [], "completion_tokens": []})
+                    target_tokens[self.model_name]["prompt_tokens"].append(pt)
+                    target_tokens[self.model_name]["completion_tokens"].append(ct)
+                    return result
+                
+                return async_wrapper
 
-                return result
+            else:
+                @wraps(fn)
+                def sync_wrapper(*args, **kwargs):
+                    result = fn(*args, **kwargs)
+                    resp = (result[response_index]
+                            if isinstance(result, (tuple, list)) else result)
+                    inst = args[0] if args else None
 
-            def _sync_wrapper(*args, **kwargs):
-                result = fn(*args, **kwargs)
-                resp = (result[response_index] if isinstance(result, (tuple, list)) else result)
-                inst = args[0] if args else None
+                    self.model_name = self._extract_model_name(inst, args)
+                    self.check_company(self.model_name)
 
-                model_name = self._extract_model_name(inst, args)
-                self.check_company(model_name)
+                    pt, ct, cost = calc_cost_from_completion(resp, self.price_detail[self.model_name])
 
-                usage = getattr(resp, 'usage', None) or getattr(resp, 'usage_metadata', None)
-                pt = getattr(usage, 'prompt_tokens', getattr(usage, 'input_tokens', getattr(usage, 'prompt_token_count', 0)))
-                ct = getattr(usage, 'completion_tokens', getattr(usage, 'output_tokens', getattr(usage, 'candidates_token_count', 0)))
-                cost = calc_cost_from_completion(resp, self.price_detail[model_name])
+                    # settings
+                    target_costs = (inst.costs if hasattr(inst, 'costs') else self.costs)
+                    target_tokens = (inst.token_logs if hasattr(inst, 'token_logs') else self.token_logs)
 
-                target_costs = (inst.costs if hasattr(inst, 'costs') else self.costs)
-                target_tokens = (inst.token_logs if hasattr(inst, 'token_logs') else self.token_logs)
-
-                target_costs.setdefault(model_name, []).append(cost)
-                target_tokens.setdefault(model_name, {"prompt_tokens": [], "completion_tokens": []})
-                target_tokens[model_name]["prompt_tokens"].append(pt)
-                target_tokens[model_name]["completion_tokens"].append(ct)
-
-                return result
-
-            return _async_wrapper if is_async else _sync_wrapper
+                    target_costs.setdefault(self.model_name, []).append(cost)
+                    target_tokens.setdefault(self.model_name, {"prompt_tokens": [], "completion_tokens": []})
+                    target_tokens[self.model_name]["prompt_tokens"].append(pt)
+                    target_tokens[self.model_name]["completion_tokens"].append(ct)
+                    return result
+                
+                return sync_wrapper
 
         return decorator
 
