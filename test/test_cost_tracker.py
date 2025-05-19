@@ -8,6 +8,8 @@ import asyncio
 from tracker.cost_tracker import cost_tracker
 from tracker.pricing_loader import load_pricing_yaml
 
+import random
+
 # ─────────────────────────────────────────────────────────────
 # 매 테스트 전후 상태 초기화
 @pytest.fixture(autouse=True)
@@ -200,3 +202,156 @@ def test_gemini_async_tracks_cost_and_tokens():
     toks = cost_tracker.token_logs[model_name]
     assert toks["prompt_tokens"]     == [2]
     assert toks["completion_tokens"] == [5]
+    
+@pytest.mark.parametrize("n_calls", [1, 3, 5, 10])
+def test_report_summarizes_usage_correctly(n_calls):
+    model_name = "gpt-4o-mini"
+    random.seed(n_calls)  # 각 N마다 고정된 난수 시퀀스
+
+    prompt_values = [random.randint(5, 20) for _ in range(n_calls)]
+    completion_values = [random.randint(5, 20) for _ in range(n_calls)]
+
+    DummyChatCompletion.__init__ = lambda self, **kwargs: setattr(
+        self, 'usage', DummyCompletionUsage(kwargs["prompt_tokens"], kwargs["completion_tokens"])
+    )
+
+    @cost_tracker.track_cost()
+    def call_model(pt, ct, model_name: str):
+        return DummyChatCompletion(prompt_tokens=pt, completion_tokens=ct)
+
+    for pt, ct in zip(prompt_values, completion_values):
+        call_model(pt, ct, model_name)
+
+    # 계산
+    total_prompt = sum(prompt_values)
+    total_completion = sum(completion_values)
+    avg_prompt = round(total_prompt / n_calls, 2)
+    avg_completion = round(total_completion / n_calls, 2)
+
+    report_text = cost_tracker.report()
+
+    print(f"\n[Calls={n_calls}]")
+    print("Prompt:", prompt_values)
+    print("Completion:", completion_values)
+    print(report_text)
+
+    # 검증
+    assert model_name in report_text
+    assert str(n_calls) in report_text
+    assert str(total_prompt) in report_text
+    assert str(total_completion) in report_text
+    assert str(avg_prompt) in report_text
+    assert str(avg_completion) in report_text or str(round(avg_completion, 1)) in report_text
+
+def test_report_includes_detailed_token_logs():
+    model_name = "gpt-4o-mini"
+
+    DummyChatCompletion.__init__ = lambda self, **kwargs: setattr(
+        self, 'usage', DummyCompletionUsage(kwargs["prompt_tokens"], kwargs["completion_tokens"])
+    )
+
+    @cost_tracker.track_cost()
+    def call_model(model_name: str):
+        return DummyChatCompletion(prompt_tokens=5, completion_tokens=7)
+
+    call_model(model_name)
+
+    report_text = cost_tracker.report(include_detail=True)
+
+    # Detail 로그에 포함되었는지 확인
+    assert "[Detailed Token Logs]" in report_text
+    assert "'prompt_tokens': [5]" in report_text
+    assert "'completion_tokens': [7]" in report_text
+
+def test_token_logs_structure_and_values():
+    model_name = "gpt-4o-mini"
+
+    prompt_values = [10, 20, 30]
+    completion_values = [5, 10, 15]
+
+    DummyChatCompletion.__init__ = lambda self, **kwargs: setattr(
+        self, 'usage', DummyCompletionUsage(kwargs["prompt_tokens"], kwargs["completion_tokens"])
+    )
+
+    @cost_tracker.track_cost()
+    def call_model(pt, ct, model_name: str):
+        return DummyChatCompletion(prompt_tokens=pt, completion_tokens=ct)
+
+    for pt, ct in zip(prompt_values, completion_values):
+        call_model(pt, ct, model_name)
+
+    logs = cost_tracker.token_logs[model_name]
+    
+    assert logs["prompt_tokens"] == prompt_values
+    assert logs["completion_tokens"] == completion_values
+
+    summary = logs["summary"]
+    assert summary["calls"] == len(prompt_values)
+    assert summary["total_prompt_tokens"] == sum(prompt_values)
+    assert summary["total_completion_tokens"] == sum(completion_values)
+    assert summary["avg_prompt_tokens"] == round(sum(prompt_values) / len(prompt_values), 2)
+    assert summary["avg_completion_tokens"] == round(sum(completion_values) / len(completion_values), 2)
+
+@pytest.mark.parametrize("model_name, provider_key", [
+    ("gpt-4o-mini", "openai"),
+    ("claude-3-5-haiku-20241022", "antrophic"),
+    ("gemini-2.0-flash", "google")
+])
+@pytest.mark.parametrize("n_calls", [1, 3, 5])
+def test_token_logs_and_report_match(n_calls, model_name, provider_key):
+    random.seed(hash(model_name) + n_calls)
+
+    prompt_values = [random.randint(5, 20) for _ in range(n_calls)]
+    completion_values = [random.randint(5, 20) for _ in range(n_calls)]
+
+    class Dummy:
+        def __init__(self, **kwargs):
+            self.usage = type("Usage", (), {
+                "prompt_tokens": kwargs.get("prompt_tokens", kwargs.get("input_tokens")),
+                "completion_tokens": kwargs.get("completion_tokens", kwargs.get("output_tokens")),
+                "input_tokens": kwargs.get("input_tokens", kwargs.get("prompt_tokens")),
+                "output_tokens": kwargs.get("output_tokens", kwargs.get("completion_tokens")),
+                "prompt_token_count": kwargs.get("prompt_token_count", kwargs.get("prompt_tokens")),
+                "candidates_token_count": kwargs.get("candidates_token_count", kwargs.get("completion_tokens")),
+            })()
+
+    DummyChatCompletion.__init__ = lambda self, **kwargs: setattr(
+        self, 'usage', Dummy(**kwargs).usage
+    )
+
+    @cost_tracker.track_cost()
+    def call_model(pt, ct, model_name: str):
+        return DummyChatCompletion(prompt_tokens=pt, completion_tokens=ct)
+
+    for pt, ct in zip(prompt_values, completion_values):
+        call_model(pt, ct, model_name)
+
+    logs = cost_tracker.token_logs[model_name]
+    assert logs["prompt_tokens"] == prompt_values
+    assert logs["completion_tokens"] == completion_values
+
+    summary = logs["summary"]
+    total_prompt = sum(prompt_values)
+    total_completion = sum(completion_values)
+    avg_prompt = round(total_prompt / n_calls, 2)
+    avg_completion = round(total_completion / n_calls, 2)
+
+    assert summary["calls"] == n_calls
+    assert summary["total_prompt_tokens"] == total_prompt
+    assert summary["total_completion_tokens"] == total_completion
+    assert summary["avg_prompt_tokens"] == avg_prompt
+    assert summary["avg_completion_tokens"] == avg_completion
+
+    report_text = cost_tracker.report()
+
+    assert model_name in report_text
+    assert str(n_calls) in report_text
+    assert str(total_prompt) in report_text
+    assert str(total_completion) in report_text
+    assert str(avg_prompt) in report_text
+    assert str(avg_completion) in report_text or str(round(avg_completion, 1)) in report_text
+
+    print(f"\n[✓ model={model_name}, N={n_calls}]")
+    print("Prompt values:", prompt_values)
+    print("Completion values:", completion_values)
+    print(report_text)
