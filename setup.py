@@ -22,6 +22,7 @@ setup(
     packages=find_packages(exclude=["tutorial", "tests*"]),
     install_requires=[
         "PyYAML>=5.1",
+        "tabulate>=0.9.0",
     ],
     python_requires=">=3.10",
     classifiers=[
