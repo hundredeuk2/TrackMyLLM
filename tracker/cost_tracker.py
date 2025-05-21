@@ -3,7 +3,7 @@ from functools import wraps
 from collections import defaultdict
 from typing import Any, Callable
 from .pricing_loader import load_pricing_yaml
-from .utils import calc_cost_from_completion
+from .utils import check_and_set_price_detail, calc_cost_from_completion, calc_cost_from_aimessages, is_ai_message
 from tabulate import tabulate
 
 class CostTracker:
@@ -35,9 +35,13 @@ class CostTracker:
                     result = await fn(*args, **kwargs)
                     resp = result[response_index] if isinstance(result, (tuple, list)) else result
                     inst = args[0] if args else None
-                    model_used = model_name or self._extract_model_name(inst, args, kwargs, fn)
-                    self.check_company(model_used)
-                    pt, ct, cost = calc_cost_from_completion(resp, self.price_detail[model_used])
+                    if is_ai_message(resp):
+                        pt, ct, cost, extract_model_name = calc_cost_from_aimessages(self, resp)
+                        model_used = model_name or extract_model_name
+                    else:
+                        model_used = model_name or self._extract_model_name(inst, args, kwargs, fn)
+                        check_and_set_price_detail(self, model_used)
+                        pt, ct, cost = calc_cost_from_completion(resp, self.price_detail[model_used])
                     self._log_cost(inst, model_used, pt, ct, cost)
                     return result
                 return async_wrapper
@@ -48,9 +52,13 @@ class CostTracker:
                     result = fn(*args, **kwargs)
                     resp = result[response_index] if isinstance(result, (tuple, list)) else result
                     inst = args[0] if args else None
-                    model_used = model_name or self._extract_model_name(inst, args, kwargs, fn)
-                    self.check_company(model_used)
-                    pt, ct, cost = calc_cost_from_completion(resp, self.price_detail[model_used])
+                    if is_ai_message(resp):
+                        pt, ct, cost, extract_model_name = calc_cost_from_aimessages(self, resp)
+                        model_used = model_name or extract_model_name
+                    else:
+                        model_used = model_name or self._extract_model_name(inst, args, kwargs, fn)
+                        check_and_set_price_detail(self, model_used)
+                        pt, ct, cost = calc_cost_from_completion(resp, self.price_detail[model_used])
                     self._log_cost(inst, model_used, pt, ct, cost)
                     return result
                 return sync_wrapper
@@ -102,19 +110,6 @@ class CostTracker:
             print(f"[ModelName Extract Fail] {e}")
             return getattr(inst, "model_name", None)
 
-    def check_company(self, model_name: str):
-        if model_name is None:
-            raise ValueError("Model name is required for pricing lookup.")
-        lower = model_name.lower()
-        if "gpt" in lower or "o1" in lower or "o3" in lower or "o4" in lower:
-            self.price_detail = self.pricing["openai"]
-        elif "claude" in lower:
-            self.price_detail = self.pricing.get("antrophic", {})
-        elif "gemini" in lower:
-            self.price_detail = self.pricing.get("google", {})
-        else:
-            raise ValueError(f"Unsupported model: {model_name}")
-        
     def report(self, instance: Any = None, include_detail: bool = False) -> str:
 
         target_costs = getattr(instance, "costs", self.costs)
