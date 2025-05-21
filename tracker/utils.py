@@ -27,7 +27,7 @@ def calc_cost_from_aimessages(class_name, resp):
     model_name = next((usage[k] for k in model_meta_keys if k in usage), 0)
     pricing = check_and_set_price_detail(class_name, model_name)
 
-    meta_keys = ("token_usage", "usage")
+    meta_keys = ("token_usage", "usage", "usage_metadata")
     prompt_keys = ("prompt_tokens", "input_tokens", "prompt_token_count")
     completion_keys = ("completion_tokens", "output_tokens", "candidates_token_count")
 
