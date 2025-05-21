@@ -31,6 +31,10 @@ openai:
     prompt:     0.00000015
     completion: 0.00000060
 
+  "gpt-4o-mini-2024-07-18":
+    prompt:     0.00000015
+    completion: 0.00000060
+    
   "gpt-4o-mini-audio-preview":
     prompt:     0.00000015
     completion: 0.00000060
