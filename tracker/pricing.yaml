@@ -83,61 +83,77 @@ openai:
     prompt:     0.0000050
 
 antrophic:
+  "claude-opus-4-20250514":
+    prompt: 0.000015
+    cache_creation_input_tokens: 0.00001875
+    cache_read_input_tokens: 0.00000150
+    completion: 0.000075
+
+  "claude-sonnet-4-20250514":
+    prompt: 0.000003
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015  
+
   "claude-3-7-sonnet-20250219":
     prompt: 0.000003
-    cache_writes:        0.00000375
-    cache_hits:          0.00000030
-    completion:       0.000015
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015
 
   "claude-3-7-sonnet-latest":
     prompt: 0.000003
-    cache_writes:        0.00000375
-    cache_hits:          0.00000030
-    completion:       0.000015
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015
 
   "claude-3-5-sonnet-20241022":
     prompt: 0.000003
-    cache_writes:        0.00000375
-    cache_hits:          0.00000030
-    completion:       0.000015
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015
 
   "claude-3-5-sonnet-latest":
     prompt: 0.000003
-    cache_writes:        0.00000375
-    cache_hits:          0.00000030
-    completion:       0.000015
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015
 
   "claude-3-5-haiku-20241022":
     prompt: 0.00000080
-    cache_writes:        0.00000100
-    cache_hits:          0.00000008
-    completion:       0.000004
+    cache_creation_input_tokens: 0.00000100
+    cache_read_input_tokens: 0.00000008
+    completion: 0.000004
 
   "claude-3-5-haiku-latest":
     prompt: 0.00000080
-    cache_writes:        0.00000100
-    cache_hits:          0.00000008
-    completion:       0.000004
+    cache_creation_input_tokens: 0.00000100
+    cache_read_input_tokens: 0.00000008
+    completion: 0.000004
 
   "claude-3-opus-20240229":
     prompt: 0.000015
-    cache_writes:        0.00001875
-    cache_hits:          0.00000150
-    completion:       0.000075
+    cache_creation_input_tokens: 0.00001875
+    cache_read_input_tokens: 0.00000150
+    completion: 0.000075
 
   "claude-3-opus-latest":
     prompt: 0.000015
-    cache_writes:        0.00001875
-    cache_hits:          0.00000150
-    completion:       0.000075
+    cache_creation_input_tokens: 0.00001875
+    cache_read_input_tokens: 0.00000150
+    completion: 0.000075
 
   "claude-3-haiku-20240307":
     prompt: 0.00000025
-    cache_writes:        0.00000030
-    cache_hits:          0.00000003
-    completion:       0.00000125
+    cache_creation_input_tokens: 0.00000030
+    cache_read_input_tokens: 0.00000003
+    completion: 0.00000125
 
 google:
+  "gemini-2.5-flash-preview-05-20":
+    prompt:     0.00000015
+    completion: 0.00000060
+
   "gemini-2.5-flash-preview-04-17":
     prompt:     0.00000015
     completion: 0.00000060
