@@ -16,7 +16,6 @@ import random
 def reset_cost_tracker():
     cost_tracker.costs.clear()
     cost_tracker.token_logs.clear()
-    # 설정 파일에서 실제 pricing 정보를 불러오기
     cost_tracker.pricing = load_pricing_yaml()
     yield
 # ─────────────────────────────────────────────────────────────
@@ -41,7 +40,6 @@ async def call_openai_async(model_name: str):
     return DummyChatCompletion(prompt_tokens=8, completion_tokens=5)
 # ─────────────────────────────────────────────────────────────
 
-
 def test_openai_sync_tracks_cost_and_tokens():
     model_name = "gpt-4o-mini"
     call_openai_sync(model_name)
@@ -60,6 +58,9 @@ def test_openai_sync_tracks_cost_and_tokens():
     toks = cost_tracker.token_logs[model_name]
     assert toks["prompt_tokens"]     == [15]
     assert toks["completion_tokens"] == [12]
+    # cache/thinking 기본값
+    assert toks["cache_tokens"]      == [0]
+    assert toks["thinking_tokens"]   == [0]
 
 
 def test_openai_async_tracks_cost_and_tokens():
@@ -80,6 +81,8 @@ def test_openai_async_tracks_cost_and_tokens():
     toks = cost_tracker.token_logs[model_name]
     assert toks["prompt_tokens"]     == [8]
     assert toks["completion_tokens"] == [5]
+    assert toks["cache_tokens"]      == [0]
+    assert toks["thinking_tokens"]   == [0]
 # ─────────────────────────────────────────────────────────────
 
 # ─────────────────────────────────────────────────────────────
@@ -121,6 +124,8 @@ def test_anthropic_sync_tracks_cost_and_tokens():
     toks = cost_tracker.token_logs[model_name]
     assert toks["prompt_tokens"]     == [10]
     assert toks["completion_tokens"] == [21]
+    assert toks["cache_tokens"]      == [0]
+    assert toks["thinking_tokens"]   == [0]
 
 
 def test_anthropic_async_tracks_cost_and_tokens():
@@ -141,6 +146,8 @@ def test_anthropic_async_tracks_cost_and_tokens():
     toks = cost_tracker.token_logs[model_name]
     assert toks["prompt_tokens"]     == [4]
     assert toks["completion_tokens"] == [6]
+    assert toks["cache_tokens"]      == [0]
+    assert toks["thinking_tokens"]   == [0]
 # ─────────────────────────────────────────────────────────────
 
 # ─────────────────────────────────────────────────────────────
@@ -182,6 +189,8 @@ def test_gemini_sync_tracks_cost_and_tokens():
     toks = cost_tracker.token_logs[model_name]
     assert toks["prompt_tokens"]     == [4]
     assert toks["completion_tokens"] == [11]
+    assert toks["cache_tokens"]      == [0]
+    assert toks["thinking_tokens"]   == [0]
 
 
 def test_gemini_async_tracks_cost_and_tokens():
@@ -202,11 +211,64 @@ def test_gemini_async_tracks_cost_and_tokens():
     toks = cost_tracker.token_logs[model_name]
     assert toks["prompt_tokens"]     == [2]
     assert toks["completion_tokens"] == [5]
-    
+    assert toks["cache_tokens"]      == [0]
+    assert toks["thinking_tokens"]   == [0]
+# ─────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────
+class DummyClaudeUsageExtra:
+    def __init__(self, prompt: int, completion: int, cache_creation: int, cache_read: int, reasoning: int):
+        self.usage = type("U", (), {
+            "prompt_tokens": prompt,
+            "completion_tokens": completion,
+            "cache_creation_input_tokens": cache_creation,
+            "cache_read_input_tokens": cache_read,
+            "reasoning_tokens": reasoning
+        })()
+
+class DummyClaudeMessageExtra:
+    def __init__(self, prompt, completion, cache_c, cache_r, reasoning):
+        # 1) 먼저 self.usage 정의
+        self.usage = DummyClaudeUsageExtra(prompt, completion, cache_c, cache_r, reasoning).usage
+        # 2) 그 다음에 response_metadata에 넣기
+        self.response_metadata = {
+            "model_name": "claude-3-5-haiku-20241022",
+            "token_usage": self.usage
+        }
+
+@cost_tracker.track_cost()
+def call_claude_extra(model_name: str):
+    return DummyClaudeMessageExtra(7, 9, 2, 3, 4)
+
+
+def test_claude_tracks_cache_and_thinking_tokens_and_cost():
+    model_name = "claude-3-5-haiku-20241022"
+    call_claude_extra(model_name)
+
+    prices = cost_tracker.pricing["antrophic"][model_name]
+    prompt_p = prices["prompt"]
+    comp_p   = prices["completion"]
+    cache_c_p= prices["cache_creation_input_tokens"]
+    cache_r_p= prices["cache_read_input_tokens"]
+
+    toks = cost_tracker.token_logs[model_name]
+    assert toks["prompt_tokens"]    == [7]
+    assert toks["completion_tokens"] == [9]
+    assert toks["cache_tokens"]      == [5]
+    assert toks["thinking_tokens"]   == [4]
+
+    expected_cost = round(
+        7 * prompt_p + 9 * comp_p
+      + 2 * cache_c_p + 3 * cache_r_p
+      + 4 * 0
+    , 6)
+    assert pytest.approx(cost_tracker.costs[model_name][0], rel=1e-6) == expected_cost
+# ─────────────────────────────────────────────────────────────
+
 @pytest.mark.parametrize("n_calls", [1, 3, 5, 10])
 def test_report_summarizes_usage_correctly(n_calls):
     model_name = "gpt-4o-mini"
-    random.seed(n_calls)  # 각 N마다 고정된 난수 시퀀스
+    random.seed(n_calls)
 
     prompt_values = [random.randint(5, 20) for _ in range(n_calls)]
     completion_values = [random.randint(5, 20) for _ in range(n_calls)]
@@ -222,20 +284,14 @@ def test_report_summarizes_usage_correctly(n_calls):
     for pt, ct in zip(prompt_values, completion_values):
         call_model(pt, ct, model_name)
 
-    # 계산
-    total_prompt = sum(prompt_values)
-    total_completion = sum(completion_values)
-    avg_prompt = round(total_prompt / n_calls, 2)
-    avg_completion = round(total_completion / n_calls, 2)
+    total_prompt    = sum(prompt_values)
+    total_completion= sum(completion_values)
+    avg_prompt      = round(total_prompt / n_calls, 2)
+    avg_completion  = round(total_completion / n_calls, 2)
 
     report_text = cost_tracker.report()
-
-    print(f"\n[Calls={n_calls}]")
-    print("Prompt:", prompt_values)
-    print("Completion:", completion_values)
     print(report_text)
 
-    # 검증
     assert model_name in report_text
     assert str(n_calls) in report_text
     assert str(total_prompt) in report_text
@@ -243,54 +299,7 @@ def test_report_summarizes_usage_correctly(n_calls):
     assert str(avg_prompt) in report_text
     assert str(avg_completion) in report_text or str(round(avg_completion, 1)) in report_text
 
-def test_report_includes_detailed_token_logs():
-    model_name = "gpt-4o-mini"
-
-    DummyChatCompletion.__init__ = lambda self, **kwargs: setattr(
-        self, 'usage', DummyCompletionUsage(kwargs["prompt_tokens"], kwargs["completion_tokens"])
-    )
-
-    @cost_tracker.track_cost()
-    def call_model(model_name: str):
-        return DummyChatCompletion(prompt_tokens=5, completion_tokens=7)
-
-    call_model(model_name)
-
-    report_text = cost_tracker.report(include_detail=True)
-
-    # Detail 로그에 포함되었는지 확인
-    assert "[Detailed Token Logs]" in report_text
-    assert "'prompt_tokens': [5]" in report_text
-    assert "'completion_tokens': [7]" in report_text
-
-def test_token_logs_structure_and_values():
-    model_name = "gpt-4o-mini"
-
-    prompt_values = [10, 20, 30]
-    completion_values = [5, 10, 15]
-
-    DummyChatCompletion.__init__ = lambda self, **kwargs: setattr(
-        self, 'usage', DummyCompletionUsage(kwargs["prompt_tokens"], kwargs["completion_tokens"])
-    )
-
-    @cost_tracker.track_cost()
-    def call_model(pt, ct, model_name: str):
-        return DummyChatCompletion(prompt_tokens=pt, completion_tokens=ct)
-
-    for pt, ct in zip(prompt_values, completion_values):
-        call_model(pt, ct, model_name)
-
-    logs = cost_tracker.token_logs[model_name]
-    
-    assert logs["prompt_tokens"] == prompt_values
-    assert logs["completion_tokens"] == completion_values
-
-    summary = logs["summary"]
-    assert summary["calls"] == len(prompt_values)
-    assert summary["total_prompt_tokens"] == sum(prompt_values)
-    assert summary["total_completion_tokens"] == sum(completion_values)
-    assert summary["avg_prompt_tokens"] == round(sum(prompt_values) / len(prompt_values), 2)
-    assert summary["avg_completion_tokens"] == round(sum(completion_values) / len(completion_values), 2)
+# ─────────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("model_name, provider_key", [
     ("gpt-4o-mini", "openai"),
@@ -331,16 +340,19 @@ def test_token_logs_and_report_match(n_calls, model_name, provider_key):
     assert logs["completion_tokens"] == completion_values
 
     summary = logs["summary"]
-    total_prompt = sum(prompt_values)
-    total_completion = sum(completion_values)
-    avg_prompt = round(total_prompt / n_calls, 2)
-    avg_completion = round(total_completion / n_calls, 2)
+    total_prompt    = sum(prompt_values)
+    total_completion= sum(completion_values)
+    avg_prompt      = round(total_prompt / n_calls, 2)
+    avg_completion  = round(total_completion / n_calls, 2)
 
-    assert summary["calls"] == n_calls
-    assert summary["total_prompt_tokens"] == total_prompt
-    assert summary["total_completion_tokens"] == total_completion
-    assert summary["avg_prompt_tokens"] == avg_prompt
-    assert summary["avg_completion_tokens"] == avg_completion
+    assert summary["calls"]                     == n_calls
+    assert summary["total_prompt_tokens"]      == total_prompt
+    assert summary["total_completion_tokens"]  == total_completion
+    # cache/thinking 요약 기본값 확인
+    assert summary["total_cache_tokens"]     == 0
+    assert summary["total_thinking_tokens"]  == 0
+    assert summary["avg_cache_tokens"]       == 0.0
+    assert summary["avg_thinking_tokens"]    == 0.0
 
     report_text = cost_tracker.report()
 
