@@ -51,9 +51,13 @@ openai:
     prompt:     0.0001500
     completion: 0.0006000
 
+  "o3-pro":
+    prompt:     0.0000200
+    completion: 0.0000800
+
   "o3":
-    prompt:     0.0000100
-    completion: 0.0000400
+    prompt:     0.0000020
+    completion: 0.0000080
 
   "o4-mini":
     prompt:     0.0000011
