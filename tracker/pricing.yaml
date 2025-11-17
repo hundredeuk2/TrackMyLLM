@@ -86,6 +86,10 @@ openai:
   "gpt-image-1":
     prompt:     0.0000050
 
+  "gpt-5":
+    prompt:     0.00000125
+    completion: 0.00001 
+    
 antrophic:
   "claude-opus-4-20250514":
     prompt: 0.000015
@@ -185,3 +189,12 @@ google:
   "gemini-1.5-pro":
     prompt:     0.00000125
     completion: 0.00000500
+  
+deepseek:
+  "deepseek-chat":
+    prompt:     0.00000028
+    completion: 0.00000042  
+
+  "deepseek-reasoner":
+    prompt:     0.00000028
+    completion: 0.00000042  

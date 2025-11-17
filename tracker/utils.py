@@ -116,6 +116,8 @@ def check_and_set_price_detail(target, model_name: str):
         category = "antrophic"
     elif "gemini" in lower:
         category = "google"
+    elif "deepseek" in lower:
+        category = "deepseek"
     else:
         raise ValueError(f"Unsupported model: {model_name}")
 
