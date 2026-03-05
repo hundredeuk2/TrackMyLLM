@@ -25,6 +25,7 @@ class CostTracker:
                 "completion_tokens": [],
                 "cache_tokens": [],
                 "thinking_tokens": [],
+                "tool_calls": [],
             }
         )
 
@@ -74,7 +75,7 @@ class CostTracker:
                             + thinking * detail.get("thinking", 0),
                             6,
                         )
-                        self._log_cost(None, model_name, pt, ct, total_cache, thinking, cost)
+                        self._log_cost(None, model_name, pt, ct, total_cache, thinking, cost, tc_count=0)
                         return None
 
                     result = await fn(*args, **kwargs)
@@ -85,7 +86,7 @@ class CostTracker:
                     _normalize_token_usage(resp)
 
                     if is_ai_message(resp) or hasattr(resp, "response_metadata"):
-                        pt, ct, cache_t, thinking_t, cost, extracted = calc_cost_from_aimessages(
+                        pt, ct, cache_t, thinking_t, cost, tc_count, extracted = calc_cost_from_aimessages(
                             self, resp
                         )
                         used_model = model_name or extracted
@@ -94,11 +95,11 @@ class CostTracker:
                             inst, args, kwargs, fn
                         )
                         detail = check_and_set_price_detail(self, used_model)
-                        pt, ct, cache_t, thinking_t, cost = calc_cost_from_completion(
+                        pt, ct, cache_t, thinking_t, cost, tc_count = calc_cost_from_completion(
                             resp, detail
                         )
 
-                    self._log_cost(inst, used_model, pt, ct, cache_t, thinking_t, cost)
+                    self._log_cost(inst, used_model, pt, ct, cache_t, thinking_t, cost, tc_count)
                     return result
 
                 return async_wrapper
@@ -117,7 +118,7 @@ class CostTracker:
                             + thinking * detail.get("thinking", 0),
                             6,
                         )
-                        self._log_cost(None, model_name, pt, ct, total_cache, thinking, cost)
+                        self._log_cost(None, model_name, pt, ct, total_cache, thinking, cost, tc_count=0)
                         return None
 
                     result = fn(*args, **kwargs)
@@ -127,7 +128,7 @@ class CostTracker:
                     _normalize_token_usage(resp)
 
                     if is_ai_message(resp) or hasattr(resp, "response_metadata"):
-                        pt, ct, cache_t, thinking_t, cost, extracted = calc_cost_from_aimessages(
+                        pt, ct, cache_t, thinking_t, cost, tc_count, extracted = calc_cost_from_aimessages(
                             self, resp
                         )
                         used_model = model_name or extracted
@@ -136,11 +137,11 @@ class CostTracker:
                             inst, args, kwargs, fn
                         )
                         detail = check_and_set_price_detail(self, used_model)
-                        pt, ct, cache_t, thinking_t, cost = calc_cost_from_completion(
+                        pt, ct, cache_t, thinking_t, cost, tc_count = calc_cost_from_completion(
                             resp, detail
                         )
 
-                    self._log_cost(inst, used_model, pt, ct, cache_t, thinking_t, cost)
+                    self._log_cost(inst, used_model, pt, ct, cache_t, thinking_t, cost, tc_count)
                     return result
 
                 return sync_wrapper
@@ -157,6 +158,7 @@ class CostTracker:
         cache_t: int,
         thinking_t: int,
         cost: float,
+        tc_count: int = 0,
     ):
         if inst is not None and not hasattr(inst, "__dict__"):
             inst = None
@@ -171,6 +173,7 @@ class CostTracker:
                         "completion_tokens": [],
                         "cache_tokens": [],
                         "thinking_tokens": [],
+                        "tool_calls": [],
                     }
                 )
             target_costs = inst.costs
@@ -182,12 +185,13 @@ class CostTracker:
         target_costs.setdefault(model_name, []).append(cost)
         target_tokens.setdefault(
             model_name,
-            {"prompt_tokens": [], "completion_tokens": [], "cache_tokens": [], "thinking_tokens": []},
+            {"prompt_tokens": [], "completion_tokens": [], "cache_tokens": [], "thinking_tokens": [], "tool_calls": []},
         )
         target_tokens[model_name]["prompt_tokens"].append(pt)
         target_tokens[model_name]["completion_tokens"].append(ct)
         target_tokens[model_name]["cache_tokens"].append(cache_t)
         target_tokens[model_name]["thinking_tokens"].append(thinking_t)
+        target_tokens[model_name]["tool_calls"].append(tc_count)
 
         calls = len(target_tokens[model_name]["prompt_tokens"])
         summary = {
@@ -196,10 +200,12 @@ class CostTracker:
             "total_completion_tokens": sum(target_tokens[model_name]["completion_tokens"]),
             "total_cache_tokens": sum(target_tokens[model_name]["cache_tokens"]),
             "total_thinking_tokens": sum(target_tokens[model_name]["thinking_tokens"]),
+            "total_tool_calls": sum(target_tokens[model_name]["tool_calls"]),
             "avg_prompt_tokens": round(sum(target_tokens[model_name]["prompt_tokens"]) / calls, 2) if calls else 0,
             "avg_completion_tokens": round(sum(target_tokens[model_name]["completion_tokens"]) / calls, 2) if calls else 0,
             "avg_cache_tokens": round(sum(target_tokens[model_name]["cache_tokens"]) / calls, 2) if calls else 0,
             "avg_thinking_tokens": round(sum(target_tokens[model_name]["thinking_tokens"]) / calls, 2) if calls else 0,
+            "avg_tool_calls": round(sum(target_tokens[model_name]["tool_calls"]) / calls, 2) if calls else 0,
         }
         target_tokens[model_name]["summary"] = summary
 
@@ -225,8 +231,8 @@ class CostTracker:
 
         headers = [
             "Model", "Calls",
-            "Prompt (sum)", "Completion (sum)", "Cache (sum)", "Thinking (sum)",
-            "Prompt (avg)", "Completion (avg)", "Cache (avg)", "Thinking (avg)",
+            "Prompt (sum)", "Completion (sum)", "Cache (sum)", "Thinking (sum)", "Tool Calls (sum)",
+            "Prompt (avg)", "Completion (avg)", "Cache (avg)", "Thinking (avg)", "Tool Calls (avg)",
             "Total Cost ($)"
         ]
         report_data = []
@@ -239,10 +245,12 @@ class CostTracker:
                 s.get("total_completion_tokens", 0),
                 s.get("total_cache_tokens", 0),
                 s.get("total_thinking_tokens", 0),
+                s.get("total_tool_calls", 0),
                 s.get("avg_prompt_tokens", 0),
                 s.get("avg_completion_tokens", 0),
                 s.get("avg_cache_tokens", 0),
                 s.get("avg_thinking_tokens", 0),
+                s.get("avg_tool_calls", 0),
                 round(sum(target_costs.get(model, [])), 6)
             ])
 

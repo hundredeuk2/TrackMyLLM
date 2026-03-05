@@ -69,7 +69,18 @@ def calc_cost_from_completion(resp, pricing) -> tuple[int,int,int,int,float]:
       + cache_read * pricing.get("cache_read_input_tokens", pricing.get("cache", 0))
       + thinking * pricing.get("thinking", 0)
     , 6)
-    return pt, ct, cache_tokens, thinking, cost
+    # Extract tool calls if available
+    tc_count = 0
+    choices = getattr(resp, "choices", None)
+    if choices and isinstance(choices, list) and len(choices) > 0:
+        first_choice = choices[0]
+        message = getattr(first_choice, "message", None)
+        if message:
+            tool_calls = getattr(message, "tool_calls", None)
+            if tool_calls and isinstance(tool_calls, list):
+                tc_count = len(tool_calls)
+
+    return pt, ct, cache_tokens, thinking, cost, tc_count
 
 def calc_cost_from_aimessages(class_name, resp):
     usage = getattr(resp, "response_metadata", None)
@@ -122,7 +133,16 @@ def calc_cost_from_aimessages(class_name, resp):
       + thinking      * detail.get("thinking", 0)
     , 6)
 
-    return pt, ct, total_cache, thinking, cost, model_name
+    # 6) Extract tool calls (Langchain AIMessage)
+    tc_count = 0
+    if hasattr(resp, "tool_calls") and isinstance(resp.tool_calls, list):
+        tc_count = len(resp.tool_calls)
+    elif hasattr(resp, "additional_kwargs") and isinstance(resp.additional_kwargs, dict):
+        tc_add = resp.additional_kwargs.get("tool_calls")
+        if tc_add and isinstance(tc_add, list):
+            tc_count = len(tc_add)
+
+    return pt, ct, total_cache, thinking, cost, tc_count, model_name
 
 def is_ai_message(obj) -> bool:
     """

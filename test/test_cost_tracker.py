@@ -91,7 +91,20 @@ def test_openai_tool_calling_tracks_cost_and_tokens():
     # Mocking a heavier prompt (schema) and completion (tool call args)
     @cost_tracker.track_cost()
     def call_openai_tool_sync(model_name: str):
-        return DummyChatCompletion(prompt_tokens=42, completion_tokens=18)
+        resp = DummyChatCompletion(prompt_tokens=42, completion_tokens=18)
+        
+        # Inject tool calls into the mocked response
+        class DummyToolCall:
+            pass
+        class DummyMessage:
+            def __init__(self):
+                self.tool_calls = [DummyToolCall(), DummyToolCall()]
+        class DummyChoice:
+            def __init__(self):
+                self.message = DummyMessage()
+        
+        resp.choices = [DummyChoice()]
+        return resp
         
     call_openai_tool_sync(model_name)
 
@@ -109,6 +122,11 @@ def test_openai_tool_calling_tracks_cost_and_tokens():
     toks = cost_tracker.token_logs[model_name]
     assert toks["prompt_tokens"]     == [42]
     assert toks["completion_tokens"] == [18]
+    assert toks["tool_calls"]        == [2]
+    
+    # Assert it appears in summary correctly
+    assert toks["summary"]["total_tool_calls"] == 2
+    assert toks["summary"]["avg_tool_calls"] == 2.0
 
 def test_openai_nested_cached_and_reasoning_tokens():
     model_name = "gpt-4o-mini"
