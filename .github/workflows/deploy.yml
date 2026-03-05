@@ -21,7 +21,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest build twine
+          pip install pytest pytest-asyncio requests-mock build twine
       - name: Run tests
         run: pytest --maxfail=1 --disable-warnings -q
 
