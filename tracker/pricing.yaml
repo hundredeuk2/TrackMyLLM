@@ -165,6 +165,78 @@ openai:
 
 
 antrophic:
+  "claude-opus-4.6":
+    prompt: 0.00000500
+    cache_creation_input_tokens: 0.00000625
+    cache_read_input_tokens: 0.00000050
+    completion: 0.00002500
+
+  "claude-opus-4.5":
+    prompt: 0.00000500
+    cache_creation_input_tokens: 0.00000625
+    cache_read_input_tokens: 0.00000050
+    completion: 0.00002500
+
+  "claude-opus-4.1":
+    prompt: 0.000015
+    cache_creation_input_tokens: 0.00001875
+    cache_read_input_tokens: 0.00000150
+    completion: 0.000075
+
+  "claude-opus-4":
+    prompt: 0.000015
+    cache_creation_input_tokens: 0.00001875
+    cache_read_input_tokens: 0.00000150
+    completion: 0.000075
+
+  "claude-sonnet-4.6":
+    prompt: 0.000003
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015  
+
+  "claude-sonnet-4.5":
+    prompt: 0.000003
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015  
+
+  "claude-sonnet-4":
+    prompt: 0.000003
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015  
+
+  "claude-sonnet-3.7":
+    prompt: 0.000003
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015
+
+  "claude-haiku-4.5":
+    prompt: 0.00000100
+    cache_creation_input_tokens: 0.00000125
+    cache_read_input_tokens: 0.00000010
+    completion: 0.00000500
+
+  "claude-haiku-3.5":
+    prompt: 0.00000080
+    cache_creation_input_tokens: 0.00000100
+    cache_read_input_tokens: 0.00000008
+    completion: 0.00000400
+
+  "claude-opus-3":
+    prompt: 0.000015
+    cache_creation_input_tokens: 0.00001875
+    cache_read_input_tokens: 0.00000150
+    completion: 0.000075
+
+  "claude-haiku-3":
+    prompt: 0.00000025
+    cache_creation_input_tokens: 0.00000030
+    cache_read_input_tokens: 0.00000003
+    completion: 0.00000125
+
   "claude-opus-4-20250514":
     prompt: 0.000015
     cache_creation_input_tokens: 0.00001875
