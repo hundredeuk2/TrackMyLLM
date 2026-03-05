@@ -304,6 +304,26 @@ antrophic:
     completion: 0.00000125
 
 google:
+  "gemini-3.1-pro-preview":
+    prompt:     0.00000200
+    cache_read_input_tokens: 0.00000020
+    completion: 0.00001200
+
+  "gemini-3.1-flash-lite-preview":
+    prompt:     0.00000025
+    cache_read_input_tokens: 0.000000025
+    completion: 0.00000150
+
+  "gemini-3-pro-preview":
+    prompt:     0.00000200
+    cache_read_input_tokens: 0.00000020
+    completion: 0.00001200
+
+  "gemini-3-flash-preview":
+    prompt:     0.00000050
+    cache_read_input_tokens: 0.00000005
+    completion: 0.00000300
+
   "gemini-2.5-pro":
     prompt:     0.00000125
     cache_read_input_tokens: 0.000000125
