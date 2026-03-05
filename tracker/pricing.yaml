@@ -304,6 +304,21 @@ antrophic:
     completion: 0.00000125
 
 google:
+  "gemini-2.5-pro":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.000000125
+    completion: 0.00001000
+
+  "gemini-2.5-flash":
+    prompt:     0.00000030
+    cache_read_input_tokens: 0.00000003
+    completion: 0.00000250
+
+  "gemini-2.5-flash-lite":
+    prompt:     0.00000010
+    cache_read_input_tokens: 0.00000001
+    completion: 0.00000040
+
   "gemini-2.5-flash-preview-05-20":
     prompt:     0.00000015
     completion: 0.00000060
@@ -318,23 +333,27 @@ google:
 
   "gemini-2.0-flash":
     prompt:     0.00000010
+    cache_read_input_tokens: 0.000000025
     completion: 0.00000040
 
   "gemini-2.0-flash-lite":
     prompt:     0.000000075
     completion: 0.00000030
 
+  "gemini-1.5-pro":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.0000003125
+    completion: 0.00000500
+
   "gemini-1.5-flash":
     prompt:     0.000000075
+    cache_read_input_tokens: 0.00000001875
     completion: 0.00000030
 
   "gemini-1.5-flash-8b":
     prompt:     0.0000000375
+    cache_read_input_tokens: 0.00000001
     completion: 0.00000015
-
-  "gemini-1.5-pro":
-    prompt:     0.00000125
-    completion: 0.00000500
   
 deepseek:
   "deepseek-chat":
