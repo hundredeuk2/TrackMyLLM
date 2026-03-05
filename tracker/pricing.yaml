@@ -1,15 +1,81 @@
 openai:
+  "gpt-5.2":
+    prompt:     0.00000175
+    cache_read_input_tokens: 0.000000175
+    completion: 0.0000140
+  "gpt-5.1":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.000000125
+    completion: 0.0000100
+  "gpt-5":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.000000125
+    completion: 0.0000100
+  "gpt-5-mini":
+    prompt:     0.00000025
+    cache_read_input_tokens: 0.000000025
+    completion: 0.0000020
+  "gpt-5-nano":
+    prompt:     0.00000005
+    cache_read_input_tokens: 0.000000005
+    completion: 0.0000004
+  "gpt-5.3-chat-latest":
+    prompt:     0.00000175
+    cache_read_input_tokens: 0.000000175
+    completion: 0.0000140
+  "gpt-5.2-chat-latest":
+    prompt:     0.00000175
+    cache_read_input_tokens: 0.000000175
+    completion: 0.0000140
+  "gpt-5.1-chat-latest":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.000000125
+    completion: 0.0000100
+  "gpt-5-chat-latest":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.000000125
+    completion: 0.0000100
+  "gpt-5.3-codex":
+    prompt:     0.00000175
+    cache_read_input_tokens: 0.000000175
+    completion: 0.0000140
+  "gpt-5.2-codex":
+    prompt:     0.00000175
+    cache_read_input_tokens: 0.000000175
+    completion: 0.0000140
+  "gpt-5.1-codex-max":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.000000125
+    completion: 0.0000100
+  "gpt-5.1-codex":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.000000125
+    completion: 0.0000100
+  "gpt-5-codex":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.000000125
+    completion: 0.0000100
+  "gpt-5.2-pro":
+    prompt:     0.0000210
+    completion: 0.0001680
+  "gpt-5-pro":
+    prompt:     0.0000150
+    completion: 0.0001200
+
   "gpt-4.1":
-    prompt:     0.000002
-    completion: 0.000008
+    prompt:     0.0000020
+    cache_read_input_tokens: 0.00000050
+    completion: 0.0000080
 
   "gpt-4.1-mini":
-    prompt:     0.0000004
-    completion: 0.0000016
+    prompt:     0.00000040
+    cache_read_input_tokens: 0.00000010
+    completion: 0.00000160
 
   "gpt-4.1-nano":
-    prompt:     0.0000001
-    completion: 0.0000004
+    prompt:     0.00000010
+    cache_read_input_tokens: 0.000000025
+    completion: 0.00000040
 
   "gpt-4.5-preview":
     prompt:     0.000075
@@ -17,7 +83,12 @@ openai:
 
   "gpt-4o":
     prompt:     0.0000025
+    cache_read_input_tokens: 0.00000125
     completion: 0.0000100
+
+  "gpt-4o-2024-05-13":
+    prompt:     0.0000050
+    completion: 0.0000150
 
   "gpt-4o-audio-preview":
     prompt:     0.0000025
@@ -29,6 +100,7 @@ openai:
 
   "gpt-4o-mini":
     prompt:     0.00000015
+    cache_read_input_tokens: 0.000000075
     completion: 0.00000060
 
   "gpt-4o-mini-2024-07-18":
@@ -45,10 +117,12 @@ openai:
 
   "o1":
     prompt:     0.0000150
+    cache_read_input_tokens: 0.0000075
     completion: 0.0000600
 
   "o1-pro":
     prompt:     0.0001500
+    cache_read_input_tokens: 0.0000750
     completion: 0.0006000
 
   "o3-pro":
@@ -57,6 +131,7 @@ openai:
 
   "o3":
     prompt:     0.0000020
+    cache_read_input_tokens: 0.0000010
     completion: 0.0000080
 
   "o4-mini":
@@ -65,10 +140,12 @@ openai:
 
   "o3-mini":
     prompt:     0.0000011
+    cache_read_input_tokens: 0.00000055
     completion: 0.0000044
 
   "o1-mini":
     prompt:     0.0000011
+    cache_read_input_tokens: 0.00000055
     completion: 0.0000044
 
   "gpt-4o-mini-search-preview":
@@ -86,11 +163,80 @@ openai:
   "gpt-image-1":
     prompt:     0.0000050
 
-  "gpt-5":
-    prompt:     0.00000125
-    completion: 0.00001 
-    
+
 antrophic:
+  "claude-opus-4.6":
+    prompt: 0.00000500
+    cache_creation_input_tokens: 0.00000625
+    cache_read_input_tokens: 0.00000050
+    completion: 0.00002500
+
+  "claude-opus-4.5":
+    prompt: 0.00000500
+    cache_creation_input_tokens: 0.00000625
+    cache_read_input_tokens: 0.00000050
+    completion: 0.00002500
+
+  "claude-opus-4.1":
+    prompt: 0.000015
+    cache_creation_input_tokens: 0.00001875
+    cache_read_input_tokens: 0.00000150
+    completion: 0.000075
+
+  "claude-opus-4":
+    prompt: 0.000015
+    cache_creation_input_tokens: 0.00001875
+    cache_read_input_tokens: 0.00000150
+    completion: 0.000075
+
+  "claude-sonnet-4.6":
+    prompt: 0.000003
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015  
+
+  "claude-sonnet-4.5":
+    prompt: 0.000003
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015  
+
+  "claude-sonnet-4":
+    prompt: 0.000003
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015  
+
+  "claude-sonnet-3.7":
+    prompt: 0.000003
+    cache_creation_input_tokens: 0.00000375
+    cache_read_input_tokens: 0.00000030
+    completion: 0.000015
+
+  "claude-haiku-4.5":
+    prompt: 0.00000100
+    cache_creation_input_tokens: 0.00000125
+    cache_read_input_tokens: 0.00000010
+    completion: 0.00000500
+
+  "claude-haiku-3.5":
+    prompt: 0.00000080
+    cache_creation_input_tokens: 0.00000100
+    cache_read_input_tokens: 0.00000008
+    completion: 0.00000400
+
+  "claude-opus-3":
+    prompt: 0.000015
+    cache_creation_input_tokens: 0.00001875
+    cache_read_input_tokens: 0.00000150
+    completion: 0.000075
+
+  "claude-haiku-3":
+    prompt: 0.00000025
+    cache_creation_input_tokens: 0.00000030
+    cache_read_input_tokens: 0.00000003
+    completion: 0.00000125
+
   "claude-opus-4-20250514":
     prompt: 0.000015
     cache_creation_input_tokens: 0.00001875
@@ -158,6 +304,41 @@ antrophic:
     completion: 0.00000125
 
 google:
+  "gemini-3.1-pro-preview":
+    prompt:     0.00000200
+    cache_read_input_tokens: 0.00000020
+    completion: 0.00001200
+
+  "gemini-3.1-flash-lite-preview":
+    prompt:     0.00000025
+    cache_read_input_tokens: 0.000000025
+    completion: 0.00000150
+
+  "gemini-3-pro-preview":
+    prompt:     0.00000200
+    cache_read_input_tokens: 0.00000020
+    completion: 0.00001200
+
+  "gemini-3-flash-preview":
+    prompt:     0.00000050
+    cache_read_input_tokens: 0.00000005
+    completion: 0.00000300
+
+  "gemini-2.5-pro":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.000000125
+    completion: 0.00001000
+
+  "gemini-2.5-flash":
+    prompt:     0.00000030
+    cache_read_input_tokens: 0.00000003
+    completion: 0.00000250
+
+  "gemini-2.5-flash-lite":
+    prompt:     0.00000010
+    cache_read_input_tokens: 0.00000001
+    completion: 0.00000040
+
   "gemini-2.5-flash-preview-05-20":
     prompt:     0.00000015
     completion: 0.00000060
@@ -172,23 +353,27 @@ google:
 
   "gemini-2.0-flash":
     prompt:     0.00000010
+    cache_read_input_tokens: 0.000000025
     completion: 0.00000040
 
   "gemini-2.0-flash-lite":
     prompt:     0.000000075
     completion: 0.00000030
 
+  "gemini-1.5-pro":
+    prompt:     0.00000125
+    cache_read_input_tokens: 0.0000003125
+    completion: 0.00000500
+
   "gemini-1.5-flash":
     prompt:     0.000000075
+    cache_read_input_tokens: 0.00000001875
     completion: 0.00000030
 
   "gemini-1.5-flash-8b":
     prompt:     0.0000000375
+    cache_read_input_tokens: 0.00000001
     completion: 0.00000015
-
-  "gemini-1.5-pro":
-    prompt:     0.00000125
-    completion: 0.00000500
   
 deepseek:
   "deepseek-chat":
