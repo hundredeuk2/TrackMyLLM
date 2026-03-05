@@ -83,6 +83,77 @@ def test_openai_async_tracks_cost_and_tokens():
     assert toks["completion_tokens"] == [5]
     assert toks["cache_tokens"]      == [0]
     assert toks["thinking_tokens"]   == [0]
+
+def test_openai_tool_calling_tracks_cost_and_tokens():
+    # Simulate an API response where a tool is called
+    model_name = "gpt-4o-mini"
+    
+    # Mocking a heavier prompt (schema) and completion (tool call args)
+    @cost_tracker.track_cost()
+    def call_openai_tool_sync(model_name: str):
+        return DummyChatCompletion(prompt_tokens=42, completion_tokens=18)
+        
+    call_openai_tool_sync(model_name)
+
+    provider_prices = cost_tracker.pricing.get("openai", {})
+    model_prices = provider_prices.get(model_name)
+    assert model_prices is not None
+
+    prompt_price = model_prices["prompt"]
+    completion_price = model_prices["completion"]
+    expected = round(42 * prompt_price + 18 * completion_price, 6)
+
+    assert model_name in cost_tracker.costs
+    assert pytest.approx(cost_tracker.costs[model_name][0], rel=1e-6) == expected
+
+    toks = cost_tracker.token_logs[model_name]
+    assert toks["prompt_tokens"]     == [42]
+    assert toks["completion_tokens"] == [18]
+
+def test_openai_nested_cached_and_reasoning_tokens():
+    model_name = "gpt-4o-mini"
+    
+    class DummyDetailedUsage:
+        def __init__(self, prompt, comp, cached, reasoning):
+            self.prompt_tokens = prompt
+            self.completion_tokens = comp
+            # OpenAI nests cache in prompt_tokens_details and reasoning in completion_tokens_details
+            self.prompt_tokens_details = type("PDets", (), {"cached_tokens": cached})()
+            self.completion_tokens_details = type("CDets", (), {"reasoning_tokens": reasoning})()
+
+    class DummyDetailedChatCompletion:
+        def __init__(self, prompt, comp, cached, reasoning):
+            self.usage = DummyDetailedUsage(prompt, comp, cached, reasoning)
+            
+    @cost_tracker.track_cost()
+    def call_openai_detailed(model_name: str):
+        # 50 prompt (of which 20 are cached), 30 completion (of which 10 are reasoning)
+        return DummyDetailedChatCompletion(50, 30, 20, 10)
+        
+    call_openai_detailed(model_name)
+    
+    provider_prices = cost_tracker.pricing.get("openai", {})
+    model_prices = provider_prices.get(model_name)
+    
+    prompt_price = model_prices["prompt"]
+    completion_price = model_prices["completion"]
+    # Usually cache read is priced differently. Wait, for openai cache it's cache_read_input_tokens but pricing.yaml has it for anthropic.
+    # We used `cache_read_input_tokens` with a fallback to `cache`. If neither exists, it defaults to 0. 
+    # For GPT-4o-mini in pricing.yaml, there's no `cache...` entry today, so it will fall back to 0.
+    cache_price = model_prices.get("cache_read_input_tokens", model_prices.get("cache", 0))
+    thinking_price  = model_prices.get("thinking", 0)
+    
+    # Cost should be: (50 - 20) * prompt + 20 * cache + 30 * completion + 10 * thinking
+    expected = round(30 * prompt_price + 20 * cache_price + 30 * completion_price + 10 * thinking_price, 6)
+
+    assert model_name in cost_tracker.costs
+    assert pytest.approx(cost_tracker.costs[model_name][0], rel=1e-6) == expected
+    
+    toks = cost_tracker.token_logs[model_name]
+    assert toks["prompt_tokens"]     == [50]
+    assert toks["completion_tokens"] == [30]
+    assert toks["cache_tokens"]      == [20]
+    assert toks["thinking_tokens"]   == [10]
 # ─────────────────────────────────────────────────────────────
 
 # ─────────────────────────────────────────────────────────────

@@ -6,12 +6,23 @@ def _get_attr_any(obj, keys, default=0):
             return val
     return default
 
+def _get_nested_attr(obj, parent_key, child_key, default=0):
+    parent = getattr(obj, parent_key, None)
+    if parent is None:
+        if isinstance(obj, dict):
+            parent = obj.get(parent_key)
+    if parent is not None:
+        if isinstance(parent, dict):
+            return parent.get(child_key, default)
+        return getattr(parent, child_key, default)
+    return default
+
 def calc_cost_from_completion(resp, pricing) -> tuple[int,int,int,int,float]:
     """
     resp 의 usage, usage_metadata, usage_tokens 등에서
       - prompt_tokens
       - completion_tokens
-      - cache_tokens (cache_creation_input + cache_read_input)
+      - cache_tokens (cache_creation_input + cache_read_input + cached_tokens)
       - thinking_tokens (reasoning_tokens or thoughts_token_count)
     를 뽑아내어, cost까지 계산해 반환합니다.
     """
@@ -27,18 +38,36 @@ def calc_cost_from_completion(resp, pricing) -> tuple[int,int,int,int,float]:
     # 2) 토큰 키 추출
     pt = _get_attr_any(usage, ("prompt_tokens", "input_tokens", "prompt_token_count"))
     ct = _get_attr_any(usage, ("completion_tokens", "output_tokens", "candidates_token_count"))
-    # cache tokens (Claude)
+    
+    # cache tokens (Claude: cache_creation_input_tokens/cache_read_input_tokens, OpenAI: prompt_tokens_details.cached_tokens)
     cache_created = _get_attr_any(usage, ("cache_creation_input_tokens",))
     cache_read    = _get_attr_any(usage, ("cache_read_input_tokens",))
-    cache_tokens  = cache_created + cache_read
+    
+    # OpenAI nested details
+    openai_cached = _get_nested_attr(usage, "prompt_tokens_details", "cached_tokens", 0)
+    
+    cache_tokens  = cache_created + cache_read + openai_cached
+    
     # thinking tokens (OpenAI “reasoning_tokens” or Google “thoughts_token_count”)
     thinking = _get_attr_any(usage, ("reasoning_tokens", "thoughts_token_count"))
+    
+    # OpenAI nested reasoning details
+    openai_reasoning = _get_nested_attr(usage, "completion_tokens_details", "reasoning_tokens", 0)
+    thinking = max(thinking, openai_reasoning)
+
+    # For OpenAI specifically, pt includes cached_tokens, but pricing is different
+    # If openai_cached > 0, we should subtract it from standard prompt tokens for accurate split billing
+    pt_billable = pt
+    if openai_cached > 0:
+        pt_billable = max(0, pt - openai_cached)
 
     cost = round(
-        pt * pricing.get("prompt", 0)
+        pt_billable * pricing.get("prompt", 0)
       + ct * pricing.get("completion", 0)
-      + cache_tokens * pricing.get("cache", 0)
-      + thinking   * pricing.get("thinking", 0)
+      + openai_cached * pricing.get("cache_read_input_tokens", pricing.get("cache", 0))
+      + cache_created * pricing.get("cache_creation_input_tokens", pricing.get("cache", 0))
+      + cache_read * pricing.get("cache_read_input_tokens", pricing.get("cache", 0))
+      + thinking * pricing.get("thinking", 0)
     , 6)
     return pt, ct, cache_tokens, thinking, cost
 
@@ -55,8 +84,6 @@ def calc_cost_from_aimessages(class_name, resp):
 
     # 2) 해당 모델의 요율(딕셔너리) 가져오기
     detail = check_and_set_price_detail(class_name, model_name)
-    # detail 예: {"prompt":0.0000025, "completion":0.0000100, 
-    #          "cache_creation_input_tokens":0.00001875, ...}
 
     # 3) 토큰 사용량 뽑기
     token_usage = next((usage[k] for k in ("token_usage","usage","usage_metadata") if k in usage), {})
@@ -70,20 +97,32 @@ def calc_cost_from_aimessages(class_name, resp):
     # 4) 캐시 생성·읽기 토큰, thinking 토큰(예: reasoning_tokens)
     cache_created = token_usage.get("cache_creation_input_tokens", 0)
     cache_read    = token_usage.get("cache_read_input_tokens", 0)
+    
+    # OpenAI nested structures inside token_usage
+    openai_cached = _get_nested_attr(token_usage, "prompt_tokens_details", "cached_tokens", 0)
+    openai_reasoning = _get_nested_attr(token_usage, "completion_tokens_details", "reasoning_tokens", 0)
+    
     thinking      = token_usage.get("reasoning_tokens",
                    token_usage.get("thoughts_token_count", 0))
+    thinking = max(thinking, openai_reasoning)
+    
+    total_cache = cache_created + cache_read + openai_cached
+    
+    pt_billable = pt
+    if openai_cached > 0:
+        pt_billable = max(0, pt - openai_cached)
 
     # 5) 비용 계산 — detail 에서 바로 get
     cost = round(
-        pt * detail.get("prompt", 0)
+        pt_billable * detail.get("prompt", 0)
       + ct * detail.get("completion", 0)
+      + openai_cached * detail.get("cache_read_input_tokens", 0)
       + cache_created * detail.get("cache_creation_input_tokens", 0)
       + cache_read    * detail.get("cache_read_input_tokens", 0)
       + thinking      * detail.get("thinking", 0)
     , 6)
 
-    # (원하시면 cache_created+cache_read 를 합쳐서 내보내셔도 됩니다)
-    return pt, ct, cache_created + cache_read, thinking, cost, model_name
+    return pt, ct, total_cache, thinking, cost, model_name
 
 def is_ai_message(obj) -> bool:
     """
